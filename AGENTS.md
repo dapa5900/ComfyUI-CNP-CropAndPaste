@@ -6,8 +6,10 @@ Two nodes: `CNPCrop` (crops image to mask bbox + pipes metadata) and `CNPPaste` 
 
 - **Node class name = registration key** in `NODE_CLASS_MAPPINGS`. Must match exactly.
 - **PIPE dict** = `{"metadata": tensor[N, [x, y, w, h, nw, nh]], "original_images": tensor, "masks": tensor}`.
+  - `masks` stores the **cropped/resized** masks (one per batch item), **not** the original full-image masks.
   - `nw, nh` are **stored but never read** by CNPPaste (only `x, y, w, h` used).
-- **CNPPaste blend**: `crop_img * mask_exp + canvas * (1.0 - mask_exp)`.
+  - **Uniform crops assumed across batch** — `torch.stack` on cropped masks of differing sizes would fail.
+- **CNPPaste blend**: `crop_img * mask_exp + canvas * (1.0 - mask_exp)` where `mask_exp = mask.unsqueeze(-1).expand(-1, -1, 3)`.
 - **Empty mask** → return full image unchanged (early continue in loop).
 
 ## Tensor shapes
@@ -22,12 +24,13 @@ Always unsqueeze batch dim for uniform handling. Use `.permute(2,0,1)` for CHW c
 
 ## Padding modes
 
-- `padding_mode` dropdown: `"pixels"` (INT 0–1024) or `"percent"` (INT 0–100).
+- `padding_mode` dropdown: `"pixels"` (INT 0–1024) or `"percent"` (INT 0–100). Both INT widgets always present but only the active one is consumed.
 - Percent mode computes `round(bbox_diag * padding_percent / 100.0)` where `bbox_diag = sqrt(w² + h²)`.
 
 ## Divisible_by centering
 
-Crop box is centered on mask bbox center. Half-extent from center is **rounded to nearest div_factor** (not ceil), then doubled: `hw = max(div_factor, round(half_w / div_factor) * div_factor)`, `w = 2 * hw`. Clamp to image bounds after centering.
+- `divisible_by` is a **string dropdown** (choices `"2","4","8","16","32","64"`), cast to int at runtime.
+- Crop box is centered on mask bbox center. Half-extent from center is **rounded to nearest div_factor** (not ceil), then doubled: `hw = max(div_factor, round(half_w / div_factor) * div_factor)`, `w = 2 * hw`. Clamp to image bounds after centering.
 
 ## Mask interpolation
 
