@@ -1,31 +1,13 @@
-[build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "comfyui-cnp-cropandpaste"
 description = "Crop and Paste custom nodes for ComfyUI — crop images to mask bboxes and paste them back with alpha blending"
 version = "0.1.0"
-authors = [
-    {name = "dapa5900", email = "daniel.partzsch@gmail.com"}
-]
-readme = "README.md"
-requires-python = ">=3.10"
 license = {text = "MIT"}
-
-dependencies = [
-    "torch>=2.0",
-    "numpy",
-    "pillow",
-]
 
 [project.urls]
 Repository = "https://github.com/dapa5900/ComfyUI-CNP-CropAndPaste"
-Issues = "https://github.com/dapa5900/ComfyUI-CNP-CropAndPaste/issues"
 
 [tool.comfy]
 PublisherId = ""
 DisplayName = "CNP Crop And Paste"
-
-[tool.setuptools.packages.find]
-include = ["*"]
+Icon = ""
