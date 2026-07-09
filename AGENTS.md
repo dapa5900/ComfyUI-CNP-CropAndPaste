@@ -18,7 +18,7 @@ Two nodes: `CNPCrop` (crops image to mask bbox + pipes metadata) and `CNPPaste` 
 | MASK | (B, H, W) or (H, W) | float32 | [0, 1] |
 | PIPE metadata | (N, 6) | float32 | pixel coords |
 
-Always unsqueeze batch dim for uniform handling. Use `.permute(2,0,1)` for CHW conversion.
+Always unsqueeze batch dim for uniform handling. Use `.permute(2,0,1)` for CHW conversion (no-resize path only).
 
 ## Padding modes
 
@@ -27,7 +27,7 @@ Always unsqueeze batch dim for uniform handling. Use `.permute(2,0,1)` for CHW c
 
 ## Divisible_by centering
 
-Crop box is **centered on mask bbox center** (`(x_min + x_max) / 2.0`) after ceiling dimensions to the next multiple. This makes crop position resolution-independent. Clamp to image bounds after centering.
+Crop box is centered on mask bbox center. Half-extent from center is **rounded to nearest div_factor** (not ceil), then doubled: `hw = max(div_factor, round(half_w / div_factor) * div_factor)`, `w = 2 * hw`. Clamp to image bounds after centering.
 
 ## Mask interpolation
 
@@ -49,4 +49,8 @@ python -m py_compile __init__.py
 
 ## Web assets
 
-`web/` directory served at `/cpweb` via `__init__.py` (conditional on `PromptServer.instance`). Optional.
+`WEB_DIRECTORY = "./web"` in `__init__.py` tells ComfyUI to serve a `web/` directory. The additional `PromptServer.instance` route is a fallback for older ComfyUI versions. `web/` directory does not currently exist — optional.
+
+## Naming inconsistency
+
+Code uses `CNP` prefix (`CNPCrop`, `CNPPaste`, `CATEGORY = "Crop And Paste"`). README and `pyproject.toml` use `DPNodes` / `"DP Nodes"`. Node class names in `NODE_CLASS_MAPPINGS` are the source of truth.

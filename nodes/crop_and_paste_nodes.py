@@ -81,14 +81,20 @@ class CNPCrop:
             x2, y2 = min(img_w, x_max + effective_padding + 1), min(img_h, y_max + effective_padding + 1)
             w_base, h_base = x2 - x1, y2 - y1
 
-            w = max(div_factor, ((w_base + div_factor - 1) // div_factor) * div_factor)
-            h = max(div_factor, ((h_base + div_factor - 1) // div_factor) * div_factor)
-
             bbox_cx = (x_min + x_max) / 2.0
             bbox_cy = (y_min + y_max) / 2.0
 
-            x1 = round(bbox_cx - w / 2.0)
-            y1 = round(bbox_cy - h / 2.0)
+            half_w = w_base / 2.0
+            half_h = h_base / 2.0
+
+            hw = max(div_factor, round(half_w / div_factor) * div_factor)
+            hh = max(div_factor, round(half_h / div_factor) * div_factor)
+
+            w = 2 * hw
+            h = 2 * hh
+
+            x1 = round(bbox_cx - hw)
+            y1 = round(bbox_cy - hh)
 
             x1 = max(0, min(x1, img_w - w))
             y1 = max(0, min(y1, img_h - h))
