@@ -3,11 +3,11 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "comfyui-dpnodes"
-description = "DP Nodes - Custom nodes for ComfyUI"
+name = "comfyui-cnp-cropandpaste"
+description = "Crop and Paste custom nodes for ComfyUI — crop images to mask bboxes and paste them back with alpha blending"
 version = "0.1.0"
 authors = [
-    {name = "Your Name", email = "your.email@example.com"}
+    {name = "dapa5900", email = "daniel.partzsch@gmail.com"}
 ]
 readme = "README.md"
 requires-python = ">=3.10"
@@ -17,15 +17,15 @@ dependencies = [
     "torch>=2.0",
     "numpy",
     "pillow",
-    "comfyui-custom-nodes>=1.0.0",
 ]
 
 [project.urls]
-Repository = "https://github.com/yourusername/comfyui-dpnodes"
-Issues = "https://github.com/yourusername/comfyui-dpnodes/issues"
+Repository = "https://github.com/dapa5900/ComfyUI-CNP-CropAndPaste"
+Issues = "https://github.com/dapa5900/ComfyUI-CNP-CropAndPaste/issues"
 
-[tool.setuptools]
-packages = ["dpnodes"]
+[tool.comfy]
+PublisherId = ""
+DisplayName = "CNP Crop And Paste"
 
-[tool.setuptools.package-dir]
-dpnodes = "."
+[tool.setuptools.packages.find]
+include = ["*"]
