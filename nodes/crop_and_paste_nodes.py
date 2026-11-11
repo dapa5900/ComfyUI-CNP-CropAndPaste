@@ -1,7 +1,7 @@
 import math
 import torch
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageFilter
 
 
 def find_bbox(mask):
@@ -21,6 +21,27 @@ def find_bbox(mask):
         int(x_max - x_min + 1),
         int(y_max - y_min + 1),
     )
+
+
+def adjust_mask(mask, grow, blur, grow_device=None):
+    """Grow (dilate) / shrink (erode) by radius px, then Gaussian blur. Mask is (H, W) float [0, 1]. Output stays on input device."""
+    if grow:
+        m = mask.unsqueeze(0).unsqueeze(0)
+        if grow_device is not None:
+            m = m.to(grow_device)
+        pad = abs(grow)
+        for kernel, padding in (((1, 2 * pad + 1), (0, pad)), ((2 * pad + 1, 1), (pad, 0))):
+            if grow > 0:
+                m = torch.nn.functional.max_pool2d(m, kernel_size=kernel, stride=1, padding=padding)
+            else:
+                m = -torch.nn.functional.max_pool2d(-m, kernel_size=kernel, stride=1, padding=padding)
+        mask = m.squeeze(0).squeeze(0).to(mask.device)
+    if blur > 0:
+        device = mask.device
+        pil_mask = Image.fromarray((mask.cpu().numpy() * 255).astype(np.uint8), mode="L")
+        pil_mask = pil_mask.filter(ImageFilter.GaussianBlur(radius=blur))
+        mask = torch.tensor(np.array(pil_mask), dtype=torch.float32, device=device) / 255.0
+    return mask
 
 
 class CNPCrop:
@@ -169,13 +190,25 @@ class CNPCrop:
 class CNPPaste:
     @classmethod
     def INPUT_TYPES(cls):
-        return {"required": {"cropped_image": ("IMAGE",), "pipe": ("PIPE",)}}
+        return {
+            "required": {
+                "cropped_image": ("IMAGE",),
+                "pipe": ("PIPE",),
+                "mask_grow": ("INT", {"default": 0, "min": -256, "max": 256, "step": 1}),
+                "mask_blur": ("INT", {"default": 0, "min": 0, "max": 256, "step": 1}),
+                "adjust_device": (["auto", "cpu", "cuda"], {"default": "auto"}),
+            }
+        }
 
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "paste_from_pipe"
     CATEGORY = "Crop And Paste"
 
-    def paste_from_pipe(self, cropped_image, pipe):
+    def paste_from_pipe(self, cropped_image, pipe, mask_grow, mask_blur, adjust_device):
+        if adjust_device in ("auto", "cuda") and torch.cuda.is_available():
+            grow_device = torch.device("cuda")
+        else:
+            grow_device = None
         meta, masks, orig_imgs = (
             pipe["metadata"],
             pipe["masks"],
@@ -186,8 +219,11 @@ class CNPPaste:
             x, y, w, h, nw, nh = meta[b].int().tolist()
 
             # Resize to match original crop box (padded size)
+            crop_src = cropped_image[b]
+            if crop_src.shape[2] != 3:
+                crop_src = crop_src[:, :, :3]
             pil_img = Image.fromarray(
-                (cropped_image[b].cpu().numpy() * 255).astype(np.uint8), mode="RGB"
+                (crop_src.cpu().numpy() * 255).astype(np.uint8), mode="RGB"
             )
             crop_img_resized = (
                 torch.tensor(
@@ -206,12 +242,7 @@ class CNPPaste:
             )
 
             canvas = orig_imgs[b].clone()
-
-            # Correctly size mask and image
-            if crop_img_resized.shape[2] == 4:
-                crop_img_resized = crop_img_resized[:, :, :3]
-            elif crop_img_resized.shape[2] != 3:
-                crop_img_resized = crop_img_resized[:, :, :3]
+            crop_img_resized = crop_img_resized.to(canvas.device)
 
             # Use actual resulting shapes
             actual_h, actual_w = crop_img_resized.shape[0], crop_img_resized.shape[1]
@@ -224,6 +255,7 @@ class CNPPaste:
                 .squeeze(0)
                 .squeeze(0)
             )
+            mask_resized_final = adjust_mask(mask_resized_final, mask_grow, mask_blur, grow_device)
             mask_exp = mask_resized_final.unsqueeze(-1).expand(-1, -1, 3)
 
             # Blend

@@ -5,7 +5,7 @@ Two custom nodes for ComfyUI that let you crop images to mask bounding boxes and
 ## Nodes
 
 - **CNP Crop** — Crops an image to the mask's bounding box. Supports pixel and percent-based padding, optional resize to a target longer side, and divisible-by centering for clean tile sizes.
-- **CNP Paste** — Composites the cropped image back onto the original canvas using mask-based alpha blending.
+- **CNP Paste** — Composites the cropped image back onto the original canvas using mask-based alpha blending. Supports post-paste mask adjustment: `mask_grow` (positive expands, negative shrinks the mask), `mask_blur` (feathering), and `adjust_device` (`auto`/`cpu`/`cuda`) for the grow operation. `0, 0` keeps the original hard mask.
 
 ## Installation
 

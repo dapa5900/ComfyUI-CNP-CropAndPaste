@@ -1,7 +1,7 @@
 [project]
 name = "comfyui-cnp-cropandpaste"
 description = "Crop and Paste custom nodes for ComfyUI — crop images to mask bboxes and paste them back with alpha blending"
-version = "0.1.0"
+version = "0.2.0"
 license = {text = "MIT"}
 
 [project.urls]
